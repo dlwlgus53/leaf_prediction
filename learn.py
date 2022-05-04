@@ -15,17 +15,22 @@ from torch.utils.data import DataLoader, Dataset
 
 import torchvision.models as models
 from torchvision import transforms
-
+import argparse
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-CFG = {
-    'IMG_SIZE':128,
-    'EPOCHS':10,
-    'LEARNING_RATE':2e-3,
-    'BATCH_SIZE':8,
-    'SEED':41
-}
+
+def parse_config():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--IMG_SIZE', type=int, help='The path where the data stores.')
+    parser.add_argument('--EPOCHS', type=int, help='The path where the data stores.')
+    parser.add_argument('--LEARNING_RATE', type=float, help='The path where the data stores.')
+    parser.add_argument('--BATCH_SIZE', type=int, help='The path where the data stores.')
+    parser.add_argument('--SEED', type=int, help='The path where the data stores.')
+    
+    return parser.parse_args()
+
+args = parse_config()
 
 def seed_everything(seed):
     random.seed(seed)
@@ -36,7 +41,7 @@ def seed_everything(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
-seed_everything(CFG['SEED']) # Seed 고정
+seed_everything(args.SEED) # Seed 고정
 
 def get_train_data(data_dir):
     img_path_list = []
@@ -99,22 +104,22 @@ class CustomDataset(Dataset):
     
 train_transform = transforms.Compose([
                     transforms.ToTensor(),
-                    transforms.Resize((CFG['IMG_SIZE'], CFG['IMG_SIZE'])),
+                    transforms.Resize((args.IMG_SIZE, args.IMG_SIZE)),
                     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
                     ])
 
 test_transform = transforms.Compose([
                     transforms.ToTensor(),
-                    transforms.Resize((CFG['IMG_SIZE'], CFG['IMG_SIZE'])),
+                    transforms.Resize((args.IMG_SIZE, args.IMG_SIZE)),
                     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
                     ])
 
 # Get Dataloader
 train_dataset = CustomDataset(train_img_path, train_label, train_mode=True, transforms=train_transform)
-train_loader = DataLoader(train_dataset, batch_size = CFG['BATCH_SIZE'], shuffle=True, num_workers=0)
+train_loader = DataLoader(train_dataset, batch_size = args.BATCH_SIZE, shuffle=True, num_workers=0)
 
 vali_dataset = CustomDataset(vali_img_path, vali_label, train_mode=True, transforms=test_transform)
-vali_loader = DataLoader(vali_dataset, batch_size = CFG['BATCH_SIZE'], shuffle=False, num_workers=0)
+vali_loader = DataLoader(vali_dataset, batch_size = args.BATCH_SIZE, shuffle=False, num_workers=0)
 
 
 class CNNRegressor(torch.nn.Module):
@@ -167,7 +172,7 @@ def train(model, optimizer, train_loader, vali_loader, scheduler, device):
     criterion = nn.L1Loss().to(device)
     best_mae = 9999
     
-    for epoch in range(1,CFG["EPOCHS"]+1):
+    for epoch in range(1,args.EPOCHS+1):
         model.train()
         train_loss = []
         for img, label in tqdm(iter(train_loader)):
@@ -218,7 +223,7 @@ def validation(model, vali_loader, criterion, device):
 
 model = CNNRegressor().to(device)
 
-optimizer = torch.optim.SGD(params = model.parameters(), lr = CFG["LEARNING_RATE"])
+optimizer = torch.optim.SGD(params = model.parameters(), lr = args.LEARNING_RATE)
 scheduler = None
 
 train(model, optimizer, train_loader, vali_loader, scheduler, device)
@@ -238,7 +243,7 @@ def predict(model, test_loader, device):
     return model_pred
 
 test_dataset = CustomDataset(test_img_path, None, train_mode=False, transforms=test_transform)
-test_loader = DataLoader(test_dataset, batch_size = CFG['BATCH_SIZE'], shuffle=False, num_workers=0)
+test_loader = DataLoader(test_dataset, batch_size = args.BATCH_SIZE, shuffle=False, num_workers=0)
 
 # Validation Score가 가장 뛰어난 모델을 불러옵니다.
 checkpoint = torch.load('./saved/best_model.pth')
