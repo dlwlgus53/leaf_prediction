@@ -255,4 +255,4 @@ preds = predict(model, test_loader, device)
 
 submission = pd.read_csv('./sample_submission.csv')
 submission['leaf_weight'] = preds
-submission.to_csv('./submit.csv', index=False)
+submission.to_csv('./result/submit.csv', index=False)
